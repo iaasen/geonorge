@@ -1,0 +1,38 @@
+{
+  "name": "iaasen/geonorge",
+  "type": "library",
+  "description": "REST-based access to Geonorge address API. The Norwegian public registry of addresses",
+  "keywords": [],
+  "license": "gpl",
+  "authors": [
+    {
+      "name": "Ingvar Aasen",
+      "email": "ingvar.aasen@nte.no"
+    }
+  ],
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "require": {
+    "php": "^8.1",
+    "guzzlehttp/guzzle": "^6|^7",
+    "iaasen/stdlib": "dev-master",
+    "laminas/laminas-modulemanager": "^2",
+    "laminas/laminas-servicemanager": "^3",
+    "laminas/laminas-stdlib": "^3",
+  },
+  "require-dev": {
+  },
+  "autoload": {
+    "psr-4": {
+      "Iaasen\\Geonorge\\": "src/"
+    },
+    "classmap": [
+      "src/Module.php"
+    ]
+  },
+  "autoload-dev": {
+    "psr-4": {
+    }
+  },
+  "repositories": []
+}
