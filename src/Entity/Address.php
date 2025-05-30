@@ -60,7 +60,7 @@ class Address extends AbstractEntityV2
 	public function __construct($data = []) {
 		parent::__construct($data);
 		// Don't overwrite the integer addressId from Matrikkel
-		if(!isset($this->id)) $this->id = $this->generateUniqueId();
+		if(!isset($this->id)) $this->id = $this->getUniqueRestId();
 	}
 
 
@@ -108,8 +108,8 @@ class Address extends AbstractEntityV2
 	}
 
 
-	public function generateUniqueId() : string {
-		$this->id = base64_encode(implode('-', [
+	public function getUniqueRestId() : string {
+		return base64_encode(implode('-', [
 			$this->kommunenummer,
 			$this->gardsnummer,
 			$this->bruksnummer,
@@ -117,7 +117,6 @@ class Address extends AbstractEntityV2
 			$this->nummer,
 			$this->bokstav,
 		]));
-		return $this->id;
 	}
 
     public function setObjtype(string $type): void
@@ -128,6 +127,12 @@ class Address extends AbstractEntityV2
     public function getObjtype(): string
     {
         return ucfirst($this->adressetype);
+    }
+
+
+    public function addBruksenhet(string $bruksenhet): void
+    {
+        $this->bruksenhetsnummer[] = $bruksenhet;
     }
 
 }

@@ -19,11 +19,33 @@ class AddressService
 
     public function getAddressById(int $id): ?Address
     {
-        return $this->addressTable->getAddressById($id);
+        $address = $this->addressTable->getAddressById($id);
+        if(is_null($address)) return null;
+        return current($this->populateBruksenheter([$address]));
     }
 
     public function search()
     {
 
     }
+
+    /**
+     * @param Address[] $addresses
+     * @return Address[]
+     */
+    protected function populateBruksenheter(array $addresses): array
+    {
+        $addressIdMatrix = [];
+        foreach($addresses AS $address) {
+            $addressIdMatrix[$address->id] = $address;
+        }
+
+        $bruksenheter = $this->bruksenhetTable->getBruksenheterByAddressIds(array_keys($addressIdMatrix));
+        foreach($bruksenheter AS $bruksenhet) {
+            $addressIdMatrix[$bruksenhet['addressId']]->addBruksenhet($bruksenhet['bruksenhet']);
+        }
+
+        return $addresses;
+    }
+
 }

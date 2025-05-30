@@ -166,7 +166,6 @@ class AddressService
 		$address->location_utm = $this->geonorgeTranscodeService->transcodeLatLongToUTM($address->representasjonspunkt->lat, $address->representasjonspunkt->lon);
 		$address->location_lat_long = new LocationLatLong(round($address->representasjonspunkt->lat, 6), round($address->representasjonspunkt->lon, 6));
         if(!count($address->bruksenhetsnummer)) $address->bruksenhetsnummer = ['H0101'];
-		$address->generateUniqueId();
 		return $address;
 	}
 

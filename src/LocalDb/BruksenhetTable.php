@@ -12,7 +12,24 @@ class BruksenhetTable extends AbstractTable
 {
     public const TABLE_NAME = 'geonorge_bruksenheter';
 
-    public function insertRow(array $row) : void {
+    /**
+     * @param int[] $addressIds
+     * @return array
+     */
+    public function getBruksenheterByAddressIds(array $addressIds): array
+    {
+        $tableName = static::TABLE_NAME;
+        $query = "SELECT * FROM $tableName WHERE addressId IN (?)";
+        $response = $this->dbAdapter->query($query, [implode(', ', $addressIds)]);
+        $rows = [];
+        foreach($response AS $row) {
+            $rows[] = $row->getArrayCopy();
+        }
+        return $rows;
+    }
+
+    public function insertRow(array $row) : void
+    {
         $this->addressRows[] = [
             'adresseId' => (int) $row[34],
             'bruksenhet' => $row[15] ?: 'H0101',
@@ -37,7 +54,7 @@ class BruksenhetTable extends AbstractTable
         $io->writeln('Creating table ' . $tableName);
         $this->dbAdapter->query(<<<EOT
             CREATE TABLE `{$tableName}` (
-                `adresseId` bigint(11) NOT NULL,
+                `addressId` bigint(11) NOT NULL,
                 `bruksenhet` varchar(5) NOT NULL,
                 `timestamp_created` datetime NOT NULL DEFAULT current_timestamp()
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
@@ -45,7 +62,6 @@ class BruksenhetTable extends AbstractTable
             ALTER TABLE `geonorge_bruksenheter`
                 ADD PRIMARY KEY (`adresseId`,`bruksenhet`);
         EOT)->execute();
-
     }
 
 }
