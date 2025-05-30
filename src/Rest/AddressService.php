@@ -11,7 +11,6 @@ namespace Iaasen\Geonorge\Rest;
 use Iaasen\Exception\InvalidArgumentException;
 use Iaasen\Geonorge\Entity\LocationLatLong;
 use Iaasen\Geonorge\Entity\LocationUtm;
-use Iaasen\Geonorge\TranscodeService;
 use Iaasen\GRS80Ellipsoid;
 use League\Geotools\Coordinate\Coordinate;
 use League\Geotools\Geotools;

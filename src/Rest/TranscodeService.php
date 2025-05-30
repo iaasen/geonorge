@@ -5,7 +5,7 @@
  * Time: 17:14
  */
 
-namespace Iaasen\Geonorge;
+namespace Iaasen\Geonorge\Rest;
 
 
 

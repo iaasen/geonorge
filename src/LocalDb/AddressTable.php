@@ -8,9 +8,8 @@ namespace Iaasen\Geonorge\LocalDb;
 
 use Iaasen\DateTime;
 use Iaasen\Geonorge\Entity\Address;
-use Iaasen\Geonorge\Entity\LocationLatLong;
 use Iaasen\Geonorge\Entity\LocationUtm;
-use Iaasen\Geonorge\TranscodeService;
+use Iaasen\Geonorge\Rest\TranscodeService;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 class AddressTable extends AbstractTable
