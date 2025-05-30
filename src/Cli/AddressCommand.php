@@ -33,9 +33,7 @@ class AddressCommand extends AbstractCommand
         $addressId = $input->getArgument('addressId');
         if($datastore == 'rest') $address = $this->restAddressService->getById($addressId);
         else $address = $this->dbAddressService->getAddressById($addressId);
-        dump($address->generateUniqueId());
         dump($address);
-
         return 0;
     }
 

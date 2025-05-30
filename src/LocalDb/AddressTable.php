@@ -6,7 +6,11 @@
 
 namespace Iaasen\Geonorge\LocalDb;
 
+use Iaasen\DateTime;
 use Iaasen\Geonorge\Entity\Address;
+use Iaasen\Geonorge\Entity\LocationLatLong;
+use Iaasen\Geonorge\Entity\LocationUtm;
+use Iaasen\Geonorge\TranscodeService;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 class AddressTable extends AbstractTable
@@ -18,35 +22,52 @@ class AddressTable extends AbstractTable
         $tableName = static::TABLE_NAME;
         $result = $this->dbAdapter->query("SELECT * FROM $tableName WHERE id = ?;", [$addressId]);
         if(!$result->count()) return null;
-        return new Address($result->current());
+        $row = $result->current();
+        $address = new Address($row);
+        $address->location_utm = $utm = new LocationUtm($row['nord'], $row['øst'], LocationUtm::getUtmZoneFromEpsg($row['epsg']));
+        $transcodeService = new TranscodeService();
+        $address->location_lat_long = $latLong = $transcodeService->transcodeUTMtoLatLong($utm->utm_north, $utm->utm_east, $utm->utm_zone);
+        $address->setRepresentasjonspunkt([
+            'epsg' => 'EPSG:' . $latLong->epsg,
+            'lat' => $latLong->latitude,
+            'lon' => $latLong->longitude,
+        ]);
+
+        return $address;
     }
 
     public function insertRow(array $row) : void {
+        if(preg_match('/\.\d+$/', $row[30])) $oppdateringsdato = DateTime::createFromFormat('d.m.Y H:i:s.u', $row[30])->format('Y-m-d H:i:s');
+        else $oppdateringsdato = DateTime::createFromFormat('d.m.Y H:i:s', $row[30])->format('Y-m-d H:i:s');
+
         $this->addressRows[] = [
-            'id' => (int) $row[32],
-            'fylkesnummer' => floor((int) $row[1] / 100),
-            'kommunenummer' => (int) $row[1],
+            'id' => (int)$row[32],
+            'fylkesnummer' => floor((int)$row[1] / 100),
+            'kommunenummer' => (int)$row[1],
             'kommunenavn' => $row[2],
             'adressetype' => $row[3],
             'adressekode' => $row[6],
             'adressenavn' => $row[7],
-            'nummer' => (int) $row[8],
+            'nummer' => (int)$row[8],
             'bokstav' => $row[9],
-            'gardsnummer' => (int) $row[10],
-            'bruksnummer' => (int) $row[11],
-            'festenummer' => (int) $row[12],
+            'gardsnummer' => (int)$row[10],
+            'bruksnummer' => (int)$row[11],
+            'festenummer' => (int)$row[12],
             'seksjonsnummer' => null,
-            'undernummer' => (int) $row[13],
+            'undernummer' => (int)$row[13],
             'adressetekst' => $row[14],
-            'epsg' => (int) $row[16],
-            'nord' => (float) $row[17],
-            'øst' => (float) $row[18],
-            'postnummer' => (int) $row[19],
+            'adressetekstutenadressetilleggsnavn' => $row[15],
+            'adressetilleggsnavn' => $row[4],
+            'epsg' => (int)$row[16],
+            'nord' => (float)$row[17],
+            'øst' => (float)$row[18],
+            'postnummer' => (int)$row[19],
             'poststed' => $row[20],
             'grunnkretsnavn' => $row[22],
             'soknenavn' => $row[24],
             'tettstednavn' => $row[27],
             'search_context' => $row[7] . ' ' . $row[8] . $row[9] . ' ' . $row[20] . ' ' . $row[27] . ' ' . $row[2],
+            'oppdateringsdato' => $oppdateringsdato,
         ];
 
         $this->cachedRows++;
@@ -55,6 +76,9 @@ class AddressTable extends AbstractTable
 
     public function insertRowLeilighetsnivaa(array $row) : void
     {
+        if(preg_match('/\.\d+$/', $row[32])) $oppdateringsdato = DateTime::createFromFormat('d.m.Y H:i:s.u', $row[32])->format('Y-m-d H:i:s');
+        else $oppdateringsdato = DateTime::createFromFormat('d.m.Y H:i:s', $row[32])->format('Y-m-d H:i:s');
+
         $this->addressRows[] = [
             'id' => (int) $row[34],
             'fylkesnummer' => floor((int) $row[0] / 100),
@@ -70,7 +94,9 @@ class AddressTable extends AbstractTable
             'festenummer' => (int) $row[11],
             'seksjonsnummer' => (int) $row[12],
             'undernummer' => (int) $row[13],
-            'adressetekst' => $row[17],
+            'adressetekst' => $row[16],
+            'adressetekstutenadressetilleggsnavn' => $row[17],
+            'adressetilleggsnavn' => $row[3],
             'epsg' => (int) $row[18],
             'nord' => (float) $row[19],
             'øst' => (float) $row[20],
@@ -79,6 +105,7 @@ class AddressTable extends AbstractTable
             'grunnkretsnavn' => $row[24],
             'soknenavn' => $row[26],
             'tettstednavn' => $row[29],
+            'oppdateringsdato' => $oppdateringsdato,
             'search_context' => $row[6] . ' ' . $row[7] . $row[8] . ' ' . $row[22] . ' ' . $row[29] . ' ' . $row[1],
         ];
 
@@ -116,6 +143,8 @@ class AddressTable extends AbstractTable
                 `seksjonsnummer` smallint(6) UNSIGNED DEFAULT NULL,
                 `undernummer` smallint(6) UNSIGNED DEFAULT NULL,
                 `adressetekst` varchar(255) NOT NULL,
+                `adressetekstutenadressetilleggsnavn` varchar(255) NOT NULL,
+                `adressetilleggsnavn` varchar(255) NOT NULL,
                 `epsg` smallint(6) UNSIGNED NOT NULL,
                 `nord` float NOT NULL,
                 `øst` float NOT NULL,
@@ -125,6 +154,7 @@ class AddressTable extends AbstractTable
                 `soknenavn` varchar(255) NOT NULL,
                 `tettstednavn` varchar(255) NOT NULL,
                 `search_context` varchar(512) DEFAULT '',
+                `oppdateringsdato` datetime DEFAULT NULL,
                 `timestamp_created` datetime NOT NULL DEFAULT current_timestamp()
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
             
