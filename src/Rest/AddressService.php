@@ -147,7 +147,7 @@ class AddressService
 	 */
 	protected function transcodeGRS80ToUTM(string $latitude, string $longitude) : LocationUtm {
 		if($this->transcodeServiceToUse == 'geotools') return $this->transcodeGRS80ToUtmUsingGeotools($latitude, $longitude);
-		elseif($this->transcodeServiceToUse == 'geonorge') return $this->geonorgeTranscodeService->transcodeGRS80toUTM32($latitude, $longitude);
+		elseif($this->transcodeServiceToUse == 'geonorge') return $this->geonorgeTranscodeService->transcodeLatLongToUTM($latitude, $longitude);
 		else throw new InvalidArgumentException('Unknown transcode service: ' . $this->transcodeServiceToUse);
 	}
 

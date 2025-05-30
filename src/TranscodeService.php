@@ -34,8 +34,8 @@ class TranscodeService
 	];
 
 	const COORDINATE_SYSTEMS = [
-		4258 => 'ETRS89 Geografisk 2D', // Almost same as WGS84
-		4326 => 'WGS84 Geografisk 2D', // Almost same as GRS80
+		4258 => 'ETRS89 Geografisk 2D', // Used in Europe. Based on GRS80. Almost same as WGS84
+		4326 => 'WGS84 Geografisk 2D', // Used by the GPS satellites. Almost same as ETRS89
 		25831 => 'ETRS89 UTM 31 2D',
 		25832 => 'ETRS89 UTM 32 2D',
 		25833 => 'ETRS89 UTM 33 2D',
@@ -89,37 +89,27 @@ class TranscodeService
 		return new LocationUtm(round($data->y, 2), round($data->x, 2), $toZone . $latitudeBand);
 	}
 
-
 	/**
-	 * @deprecated use transcodeLatLongToUTM32()
-	 */
-	public function transcodeGRS80toUTM32(float $latitude, float $longitude, int $zone = 32) : LocationUtm {
-		return $this->transcodeLatLongToUTM($latitude, $longitude, $zone);
-	}
-
-
-	/**
-	 * WGS84 - used by GPS-satellites
-	 * ETRS89 - used by Europe
-	 * GRS80 - was used by GPS-satellites before
-	 * All three are almost the same
+	 * WGS84/4326 - used by GPS-satellites
+	 * ETRS89/4258 based on GRS80 - used by Europe
+	 * They are almost the same
 	 * @param float $utmNorth
 	 * @param float $utmEast
 	 * @param string $utmZone
 	 * @return LocationLatLong // Using ETRS89
 	 * @throws \GuzzleHttp\Exception\GuzzleException
 	 */
-	public function transcodeUTMtoLatLong(float $utmNorth, float $utmEast, string $utmZone = '32W') : LocationLatLong {
+	public function transcodeUTMtoLatLong(float $utmNorth, float $utmEast, string $utmZone = '32W', int $toEpgs = 4258) : LocationLatLong {
 		$utmZoneInt = (int) substr($utmZone, 0, 2);
 		$url = 'transformer';
 		$query = [
 			'x' => $utmEast,
 			'y' => $utmNorth,
 			'fra' => self::UTM_ZONES[$utmZoneInt], // Check $self::getProjections()
-			'til' => 4326,
+			'til' => $toEpgs,
 		];
 		$data = json_decode($this->transport->sendGet($url, $query));
-		return new LocationLatLong(round($data->y, 6), round($data->x, 6));
+		return new LocationLatLong(round($data->y, 6), round($data->x, 6), $toEpgs);
 	}
 
 
