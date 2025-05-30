@@ -107,7 +107,7 @@ class AddressImportService {
 
         $progressBar->finish();
         $this->closeFile($fileObject);
-        //$this->deleteImportFiles($list);
+        $this->deleteImportFiles($list);
         $io->writeln('');
 
         $this->adresseTable->flush();

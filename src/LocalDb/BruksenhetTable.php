@@ -31,7 +31,7 @@ class BruksenhetTable extends AbstractTable
     public function insertRow(array $row) : void
     {
         $this->addressRows[] = [
-            'adresseId' => (int) $row[34],
+            'addressId' => (int) $row[34],
             'bruksenhet' => $row[15] ?: 'H0101',
         ];
 
@@ -60,7 +60,7 @@ class BruksenhetTable extends AbstractTable
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
             
             ALTER TABLE `geonorge_bruksenheter`
-                ADD PRIMARY KEY (`adresseId`,`bruksenhet`);
+                ADD PRIMARY KEY (`addressId`,`bruksenhet`);
         EOT)->execute();
     }
 

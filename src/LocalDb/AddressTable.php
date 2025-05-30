@@ -79,6 +79,12 @@ class AddressTable extends AbstractTable
         if(preg_match('/\.\d+$/', $row[32])) $oppdateringsdato = DateTime::createFromFormat('d.m.Y H:i:s.u', $row[32])->format('Y-m-d H:i:s');
         else $oppdateringsdato = DateTime::createFromFormat('d.m.Y H:i:s', $row[32])->format('Y-m-d H:i:s');
 
+        // Strip bruksenhetsnummer from the address texts
+        if($row[15]) {
+            $row[16] = substr($row[16], 0, -6); // adressetekst
+            $row[17] = substr($row[17], 0, -6); // adressetekstutenadressetilleggsnavn
+        }
+
         $this->addressRows[] = [
             'id' => (int) $row[34],
             'fylkesnummer' => floor((int) $row[0] / 100),
