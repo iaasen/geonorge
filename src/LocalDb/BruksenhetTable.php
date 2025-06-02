@@ -19,8 +19,10 @@ class BruksenhetTable extends AbstractTable
     public function getBruksenheterByAddressIds(array $addressIds): array
     {
         $tableName = static::TABLE_NAME;
-        $query = "SELECT * FROM $tableName WHERE addressId IN (?)";
-        $response = $this->dbAdapter->query($query, [implode(', ', $addressIds)]);
+        $placeholders = implode(', ', array_fill(0, count($addressIds), '?'));
+        $query = "SELECT * FROM $tableName WHERE addressId IN ($placeholders)";
+
+        $response = $this->dbAdapter->query($query, $addressIds);
         $rows = [];
         foreach($response AS $row) {
             $rows[] = $row->getArrayCopy();

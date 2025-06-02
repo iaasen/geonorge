@@ -26,7 +26,9 @@ class AddressService
 
     public function search()
     {
-
+        if(!strlen($search)) return [];
+        $addresses = $this->addressTable->fuzzySearch($search);
+        return $this->populateBruksenheter($addresses);
     }
 
     /**

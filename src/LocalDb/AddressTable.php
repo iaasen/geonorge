@@ -22,17 +22,70 @@ class AddressTable extends AbstractTable
         $result = $this->dbAdapter->query("SELECT * FROM $tableName WHERE id = ?;", [$addressId]);
         if(!$result->count()) return null;
         $row = $result->current();
-        $address = new Address($row);
-        $address->location_utm = $utm = new LocationUtm($row['nord'], $row['øst'], LocationUtm::getUtmZoneFromEpsg($row['epsg']));
-        $transcodeService = new TranscodeService();
-        $address->location_lat_long = $latLong = $transcodeService->transcodeUTMtoLatLong($utm->utm_north, $utm->utm_east, $utm->utm_zone);
-        $address->setRepresentasjonspunkt([
-            'epsg' => 'EPSG:' . $latLong->epsg,
-            'lat' => $latLong->latitude,
-            'lon' => $latLong->longitude,
-        ]);
+        return self::createAddress($row);
+    }
 
-        return $address;
+    /**
+     * @param string $search
+     * @return Address[]
+     */
+    public function fuzzySearch(string $search): array
+    {
+        if(!strlen($search)) return [];
+
+        $search = self::prepareFuzzySearchFields($search);
+
+        // Prepare where search
+        $where = [];
+        $parameters = [];
+        if(isset($search['streetName']) && is_string($search['streetName']) && strlen($search['streetName'])) {
+            $where[] = "adressenavn LIKE CONCAT(?, '%')";
+            $parameters[] = $search['streetName'];
+        }
+        if(isset($search['postalCode']) && is_string($search['postalCode']) && strlen($search['postalCode'])) {
+            $where[] = "postnummer = ?";
+            $parameters[] = $search['postalCode'];
+        }
+        foreach($search['searchContext'] AS $context) {
+            $context = str_replace(['veg', 'vei'], 've_', $context);
+            $where[] = "search_context LIKE CONCAT('%', ?, '%')";
+            $parameters[] = $context;
+        }
+
+        // Create the query
+        $table = AddressTable::TABLE_NAME;
+        $sql = <<<EOT
+		SELECT *
+		FROM $table
+		EOT;
+
+        $i = 0;
+        foreach($where AS $row) {
+            $sql .= PHP_EOL . ($i == 0 ? 'WHERE ' : 'AND ') . $row;
+            $i++;
+        }
+
+        $sql .= PHP_EOL . <<<EOT
+		ORDER BY
+			CASE
+				WHEN fylkesnummer = 50 THEN 0
+				ELSE 1
+			END,
+			adressenavn,
+			nummer,
+			bokstav,
+			poststed
+		LIMIT 20;
+		EOT;
+
+        // Execute the query
+        $request = $this->dbAdapter->query($sql);
+        $result = $request->execute($parameters);
+        $addresses = [];
+        foreach ($result as $row) {
+            $addresses[] = self::createAddress($row);
+        }
+        return $addresses;
     }
 
     public function insertRow(array $row) : void {
@@ -171,6 +224,39 @@ class AddressTable extends AbstractTable
             ADD KEY `search_context` (`search_context`);
         EOT)->execute();
 
+    }
+
+    public static function prepareFuzzySearchFields(string $search): array
+    {
+        if(!strlen($search)) return [];
+        $response = [];
+        $searchContext = preg_split("/[, ]/", $search, -1, PREG_SPLIT_NO_EMPTY);
+
+        if(preg_match('/\d{4}/', reset($searchContext))) {
+            $response['postalCode'] = reset($searchContext);
+            array_shift($searchContext);
+        }
+        if(count($searchContext)) {
+            $response['streetName'] = array_shift($searchContext);
+            $response['streetName'] = str_replace(['veg', 'vei'], 've_', $response['streetName']);
+        }
+        $response['searchContext'] = $searchContext;
+
+        return $response;
+    }
+
+    private static function createAddress(array $dbRow): Address
+    {
+        $address = new Address($dbRow);
+        $address->location_utm = $utm = new LocationUtm($dbRow['nord'], $dbRow['øst'], LocationUtm::getUtmZoneFromEpsg($dbRow['epsg']));
+        $transcodeService = new TranscodeService();
+        $address->location_lat_long = $latLong = $transcodeService->transcodeUTMtoLatLong($utm->utm_north, $utm->utm_east, $utm->utm_zone);
+        $address->setRepresentasjonspunkt([
+            'epsg' => 'EPSG:' . $latLong->epsg,
+            'lat' => $latLong->latitude,
+            'lon' => $latLong->longitude,
+        ]);
+        return $address;
     }
 
 }
