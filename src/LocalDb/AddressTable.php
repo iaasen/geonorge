@@ -32,7 +32,7 @@ class AddressTable extends AbstractTable
         $result = $this->dbAdapter->query("SELECT * FROM $tableName WHERE id = ?;", [$addressId]);
         if(!$result->count()) return null;
         $row = $result->current();
-        return self::createAddress($row);
+        return self::createAddress($row->getArrayCopy());
     }
 
     public function getAddressByMatrikkelString(string $matrikkel): ?Address
