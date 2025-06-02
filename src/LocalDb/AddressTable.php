@@ -15,6 +15,16 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 class AddressTable extends AbstractTable
 {
     public const TABLE_NAME = 'geonorge_addresses';
+    public const MATRIKKEL_PATTERN = '/^(\d{4})-(\d+)(?:\/(\d+))?(?:\/(\d+))?(?:\/(\d+))?$/';
+    public const MATRIKKEL_FIELD_NAMES = [
+        'kommunenummer',
+        'gardsnummer',
+        'bruksnummer',
+        'festenummer',
+        'seksjonsnummer',
+        'undernummer'
+    ];
+
 
     public function getAddressById(int $addressId): ?Address
     {
@@ -23,6 +33,37 @@ class AddressTable extends AbstractTable
         if(!$result->count()) return null;
         $row = $result->current();
         return self::createAddress($row);
+    }
+
+    public function getAddressByMatrikkelString(string $matrikkel): ?Address
+    {
+        if(preg_match(self::MATRIKKEL_PATTERN, $matrikkel, $matches)) {
+            $tableName = static::TABLE_NAME;
+            $fieldNames = self::MATRIKKEL_FIELD_NAMES;
+
+            array_shift($matches); // Skip the first element that is a copy of the full string
+            $conditions = [];
+            $params = [];
+
+            foreach ($matches as $index => $value) {
+                if (isset($fieldNames[$index])) {
+                    $conditions[] = $fieldNames[$index] . ' = ?';
+                    $params[] = $value;
+                }
+            }
+
+            $sql = "SELECT * FROM $tableName";
+            if (!empty($conditions)) {
+                $sql .= ' WHERE ' . implode(' AND ', $conditions);
+            }
+
+            $response = $this->dbAdapter->query($sql, $params);
+            if($response->count() == 1) {
+                return self::createAddress($response->current()->getArrayCopy());
+            }
+        }
+
+        return null;
     }
 
     /**

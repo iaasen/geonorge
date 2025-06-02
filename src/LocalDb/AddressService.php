@@ -24,7 +24,14 @@ class AddressService
         return current($this->populateBruksenheter([$address]));
     }
 
-    public function search()
+    public function getAddressByMatrikkelString(string $matrikkel): ?Address
+    {
+        $address = $this->addressTable->getAddressByMatrikkelString($matrikkel);
+        if(is_null($address)) return null;
+        return current($this->populateBruksenheter([$address]));
+    }
+
+    public function fuzzySearch(string $search): array
     {
         if(!strlen($search)) return [];
         $addresses = $this->addressTable->fuzzySearch($search);
