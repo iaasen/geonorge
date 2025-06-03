@@ -53,7 +53,7 @@ class Address extends AbstractEntityV2
     // Metadata
     public int $adressekode;
     public string $adressetype;
-    public ?bool $stedfestingverifisert = null;
+    public ?bool $stedfestingverifisert = false;
     public DateTime $oppdateringsdato;
 
 
