@@ -3,7 +3,7 @@
   "type": "library",
   "description": "REST-based access to Geonorge address API. The Norwegian public registry of addresses",
   "keywords": [],
-  "license": "gpl",
+  "license": "GPL-3.0-or-later",
   "authors": [
     {
       "name": "Ingvar Aasen",
