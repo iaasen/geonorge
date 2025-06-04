@@ -226,7 +226,7 @@ class AddressTable extends AbstractTable
 
         $io->writeln('Creating table ' . $tableName);
         $this->dbAdapter->query(<<<EOT
-            CREATE TABLE `geonorge_addresses` (
+            CREATE TABLE `{$tableName}` (
                 `id` bigint(11) UNSIGNED NOT NULL,
                 `fylkesnummer` tinyint(2) UNSIGNED NOT NULL,
                 `kommunenummer` smallint(11) UNSIGNED NOT NULL,
@@ -257,7 +257,7 @@ class AddressTable extends AbstractTable
                 `timestamp_created` datetime NOT NULL DEFAULT current_timestamp()
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
             
-            ALTER TABLE `geonorge_addresses`
+            ALTER TABLE `{$tableName}`
                 ADD PRIMARY KEY (`id`),
                 ADD KEY `fylkesnummer` (`fylkesnummer`),
                 ADD KEY `adressenavn` (`adressenavn`),
@@ -265,8 +265,8 @@ class AddressTable extends AbstractTable
                 ADD KEY `search_context` (`search_context`),
                 ADD KEY `matrikkel` (`kommunenummer`,`gardsnummer`,`bruksnummer`),
                 ADD KEY `festenummer` (`festenummer`),
-                ADD KEY `seksjonsnummer` (`seksjonsnummer`);
-
+                ADD KEY `seksjonsnummer` (`seksjonsnummer`),
+                ADD KEY `order_by` (`fylkesnummer`,`adressenavn`,`nummer`,`bokstav`,`poststed`);
         EOT)->execute();
 
     }

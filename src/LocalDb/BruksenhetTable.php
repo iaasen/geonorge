@@ -61,7 +61,7 @@ class BruksenhetTable extends AbstractTable
                 `timestamp_created` datetime NOT NULL DEFAULT current_timestamp()
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
             
-            ALTER TABLE `geonorge_bruksenheter`
+            ALTER TABLE `{$tableName}`
                 ADD PRIMARY KEY (`addressId`,`bruksenhet`);
         EOT)->execute();
     }
