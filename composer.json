@@ -15,7 +15,8 @@
   "require": {
     "php": "^8.2",
     "guzzlehttp/guzzle": "^7",
-    "iaasen/stdlib": "dev-master"
+    "iaasen/stdlib": "dev-master",
+    "proj4php/proj4php": "^2"
   },
   "require-dev": {
   },
