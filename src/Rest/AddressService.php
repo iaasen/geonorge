@@ -8,12 +8,8 @@
 namespace Iaasen\Geonorge\Rest;
 
 
-use Iaasen\Exception\InvalidArgumentException;
 use Iaasen\Geonorge\Entity\LocationLatLong;
-use Iaasen\Geonorge\Entity\LocationUtm;
-use Iaasen\GRS80Ellipsoid;
-use League\Geotools\Coordinate\Coordinate;
-use League\Geotools\Geotools;
+use Iaasen\Geonorge\TranscodeHelper;
 use Iaasen\Geonorge\Entity\Address;
 use GuzzleHttp\Exception\ConnectException;
 use Nteb\ApiEntities\Exception\GatewayTimeoutException;
@@ -28,20 +24,11 @@ use Nteb\ApiEntities\Exception\GatewayTimeoutException;
 class AddressService
 {
 	const BASE_URL = 'adresser/v1/';
-	const DEFAULT_TRANSCODE_SERVICE = 'geonorge'; // Options: geotools, geonorge
-	// A third possible option is PhpCoord. See \Partnernett\Model\LatLng for example
-	// $latLong = new LatLng($telematorAddress->latitude, $telematorAddress->longitude, 0, RefEll::wgs84());
-	// I have commented earlier that geotools misses target by 1-3 meters and PhpCoord get it right. I don't remember when I discovered that.
-
 	protected Transport $transport;
-	protected TranscodeService $geonorgeTranscodeService;
-	public string $transcodeServiceToUse = self::DEFAULT_TRANSCODE_SERVICE;
-
 
 	public function __construct()
 	{
 		$this->transport = new Transport(['base_url' => Transport::BASE_URL . self::BASE_URL]);
-		$this->geonorgeTranscodeService = new TranscodeService();
 	}
 
 
@@ -56,9 +43,6 @@ class AddressService
 			'sok' => $search,
 		];
 		try {
-//			// Test of the error ConnectionException error
-//			throw new ConnectException('message', new \GuzzleHttp\Psr7\Request('GET', '/uri'), null, ['error' => 'Failed to connectasdfsdaf']);
-
 			$data = json_decode($this->transport->sendGet($url, $query));
 		}
 		catch (ConnectException $e) {
@@ -95,10 +79,7 @@ class AddressService
 			if(isset($fields[$key]) && strlen($fields[$key])) $query[$fieldName] = $fields[$key];
 		}
 
-
 		try {
-//			// Test of the error ConnectionException error
-//			throw new ConnectException('message', new \GuzzleHttp\Psr7\Request('GET', '/uri'), null, ['error' => 'Failed to connectasdfsdaf']);
 			$data = json_decode($this->transport->sendGet($url, $query));
 		}
 		catch (ConnectException $e) {
@@ -138,35 +119,15 @@ class AddressService
 		return $addresses;
 	}
 
-
-	/**
-	 * @param string $latitude
-	 * @param string $longitude
-	 * @return LocationUtm
-	 */
-	protected function transcodeGRS80ToUTM(string $latitude, string $longitude) : LocationUtm {
-		if($this->transcodeServiceToUse == 'geotools') return $this->transcodeGRS80ToUtmUsingGeotools($latitude, $longitude);
-		elseif($this->transcodeServiceToUse == 'geonorge') return $this->geonorgeTranscodeService->transcodeLatLongToUTM($latitude, $longitude);
-		else throw new InvalidArgumentException('Unknown transcode service: ' . $this->transcodeServiceToUse);
-	}
-
-
-	protected function transcodeGRS80ToUtmUsingGeotools(string $latitude, string $longitude) : LocationUtm {
-		$geotools = new Geotools();
-		$GRS80 = new GRS80Ellipsoid();
-		$coordinate = new Coordinate([$latitude, $longitude], $GRS80);
-		$coordinate = explode(' ', $geotools->convert($coordinate)->toUniversalTransverseMercator());
-		return new LocationUtm($coordinate[1], $coordinate[2], $coordinate[0]);
-	}
-
-
 	protected function createObject($data) : Address {
 		$address = new Address($data);
-		$address->location_utm = $this->geonorgeTranscodeService->transcodeLatLongToUTM($address->representasjonspunkt->lat, $address->representasjonspunkt->lon);
-		$address->location_lat_long = new LocationLatLong(round($address->representasjonspunkt->lat, 6), round($address->representasjonspunkt->lon, 6));
+        $address->location_lat_long = new LocationLatLong(round($address->representasjonspunkt->lat, 6), round($address->representasjonspunkt->lon, 6));
+        //$address->location_utm = TranscodeHelper::convertEtrs89ToUtm33UsingGeonorge($address->location_lat_long);
+        $address->location_utm = TranscodeHelper::convertErts89ToUtm33UsingProj4php($address->location_lat_long);
         if(!count($address->bruksenhetsnummer)) $address->bruksenhetsnummer = ['H0101'];
 		return $address;
 	}
+
 
     /**
      * Used for testing

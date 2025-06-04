@@ -8,12 +8,8 @@ namespace Iaasen\Geonorge\LocalDb;
 
 use Iaasen\DateTime;
 use Iaasen\Geonorge\Entity\Address;
-use Iaasen\Geonorge\Entity\LocationLatLong;
 use Iaasen\Geonorge\Entity\LocationUtm;
-use Iaasen\Geonorge\Rest\TranscodeService;
-use proj4php\Point;
-use proj4php\Proj;
-use proj4php\Proj4php;
+use Iaasen\Geonorge\TranscodeHelper;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 class AddressTable extends AbstractTable
@@ -28,13 +24,6 @@ class AddressTable extends AbstractTable
         'seksjonsnummer',
         'undernummer'
     ];
-
-    // Transcoding
-    private static Proj4php $proj4php;
-    private static Proj $utm33;
-    private static Proj $etrs89;
-    private static TranscodeService $transcodeService; // Geonorge
-
 
     public function getAddressById(int $addressId): ?Address
     {
@@ -306,8 +295,8 @@ class AddressTable extends AbstractTable
         $address->location_utm = $utm = new LocationUtm($dbRow['nord'], $dbRow['øst'], LocationUtm::getUtmZoneFromEpsg($dbRow['epsg']));
 
         // Transcode to latlong
-        $address->location_lat_long = static::convertUtm33ToEtrs89UsingProj4php($address->location_utm);
-        //$address->location_lat_long = static::convertUtm33ToEtrs89UsingGeonorge($address->location_utm);
+        //$address->location_lat_long = TranscodeHelper::convertUtm33ToEtrs89UsingGeonorge($address->location_utm);
+        $address->location_lat_long = TranscodeHelper::convertUtm33ToEtrs89UsingProj4php($address->location_utm);
         $address->setRepresentasjonspunkt([
             'epsg' => 'EPSG:' . $address->location_lat_long->epsg,
             'lat' => $address->location_lat_long->latitude,
@@ -316,32 +305,6 @@ class AddressTable extends AbstractTable
 
 
         return $address;
-    }
-
-    private static function initProj4php(): void
-    {
-        if(!isset(static::$proj4php)) static::$proj4php = new Proj4php();
-        if(!isset(static::$utm33)) static::$utm33 = new Proj('EPSG:25833', static::$proj4php);
-        if(!isset(static::$etrs89)) static::$etrs89 = new Proj('EPSG:4258', static::$proj4php);
-    }
-
-    private static function initTranscodeService(): void
-    {
-        if(!isset(static::$transcodeService)) static::$transcodeService = new TranscodeService();
-    }
-
-    private static function convertUtm33ToEtrs89UsingProj4php(LocationUtm $locationUtm): LocationLatLong
-    {
-        static::initProj4php();
-        $utm33Point = new Point($locationUtm->utm_east, $locationUtm->utm_north, static::$utm33);
-        $etrs89Point = static::$proj4php->transform(static::$etrs89, $utm33Point);
-        return new LocationLatLong($etrs89Point->x, $etrs89Point->y);
-    }
-
-    private static function convertUtm33ToEtrs89UsingGeonorge(LocationUtm $locationUtm): LocationLatLong
-    {
-        static::initTranscodeService();
-        return static::$transcodeService->transcodeUTMtoLatLong($locationUtm->utm_north, $locationUtm->utm_east, $locationUtm->utm_zone);
     }
 
 }
