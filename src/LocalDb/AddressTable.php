@@ -341,6 +341,10 @@ class AddressTable extends AbstractTable
             }
         }
 
+        // Next word is address
+        if (!empty($words)) {
+            $result['streetName'] = array_shift($words);
+        }
 
         // The rest is added to searchContext
         if (!empty($words)) {
