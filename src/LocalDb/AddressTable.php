@@ -78,13 +78,24 @@ class AddressTable extends AbstractTable
         // Prepare where search
         $where = [];
         $parameters = [];
+        if(isset($search['postalCode']) && strlen($search['postalCode'])) {
+            $where[] = "postnummer = ?";
+            $parameters[] = $search['postalCode'];
+        }
         if(isset($search['streetName']) && is_string($search['streetName']) && strlen($search['streetName'])) {
+            $search['streetName'] = str_replace(['veg', 'vei'], ['ve_', 've_'], $search['streetName']);
             $where[] = "adressenavn LIKE CONCAT(?, '%')";
             $parameters[] = $search['streetName'];
         }
-        if(isset($search['postalCode']) && is_string($search['postalCode']) && strlen($search['postalCode'])) {
-            $where[] = "postnummer = ?";
-            $parameters[] = $search['postalCode'];
+        if(isset($search['streetNumber']) && strlen($search['streetNumber'])) {
+            $where[] = "nummer LIKE CONCAT('%', ?, '%')";
+            $parameters[] = $search['streetNumber'];
+            $where[] = "nummer >= ?";
+            $parameters[] = $search['streetNumber'];
+        }
+        if(isset($search['streetLetter']) && is_string($search['streetLetter']) && strlen($search['streetLetter'])) {
+            $where[] = "bokstav LIKE ?";
+            $parameters[] = $search['streetLetter'];
         }
         foreach($search['searchContext'] AS $context) {
             $context = str_replace(['veg', 'vei'], 've_', $context);
@@ -284,23 +295,59 @@ class AddressTable extends AbstractTable
         return new DateTime($result->current()['timestamp_created']);
     }
 
-    public static function prepareFuzzySearchFields(string $search): array
+    public static function prepareFuzzySearchFields(string $input): array
     {
-        if(!strlen($search)) return [];
-        $response = [];
-        $searchContext = preg_split("/[, ]/", $search, -1, PREG_SPLIT_NO_EMPTY);
+        if(!strlen($input)) return [];
 
-        if(preg_match('/\d{4}/', reset($searchContext))) {
-            $response['postalCode'] = reset($searchContext);
-            array_shift($searchContext);
-        }
-        if(count($searchContext)) {
-            $response['streetName'] = array_shift($searchContext);
-            $response['streetName'] = str_replace(['veg', 'vei'], 've_', $response['streetName']);
-        }
-        $response['searchContext'] = $searchContext;
+        $result = [
+            'postalCode' => null,
+            'streetName' => null,
+            'streetNumber' => null,
+            'streetLetter' => null,
+            'searchContext' => [],
+        ];
 
-        return $response;
+        // Split up at comma first
+        $parts = explode(',', $input);
+        $beforeComma = trim($parts[0]);
+        $afterComma = isset($parts[1]) ? trim($parts[1]) : null;
+
+        // Handle the part after comma (postalCode and searchContext)
+        if ($afterComma) {
+            $afterParts = preg_split('/\s+/', $afterComma);
+            if (preg_match('/^\d{4}$/', $afterParts[0])) {
+                $result['postalCode'] = array_shift($afterParts);
+            }
+            $result['searchContext'] = array_merge($result['searchContext'], $afterParts);
+        }
+
+        // Handle the part before comma
+        $words = preg_split('/\s+/', $beforeComma);
+
+        // If the string starts with a postalCode
+        if (preg_match('/^\d{4}$/', $words[0])) {
+            $result['postalCode'] = array_shift($words);
+        }
+
+        // Check if the end of the string is a street numer with our without a letter
+        if (!empty($words)) {
+            $last = end($words);
+            if (preg_match('/^(\d+)(\p{L})$/u', $last, $matches)) {
+                $result['streetNumber'] = $matches[1];
+                $result['streetLetter'] = mb_strtoupper($matches[2]);
+                array_pop($words);
+            } elseif (preg_match('/^\d+$/', $last)) {
+                $result['streetNumber'] = array_pop($words);
+            }
+        }
+
+
+        // The rest is added to searchContext
+        if (!empty($words)) {
+            $result['searchContext'] = array_merge($result['searchContext'], $words);
+        }
+
+        return $result;
     }
 
     private static function createAddress(array $dbRow): Address
