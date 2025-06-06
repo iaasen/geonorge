@@ -270,6 +270,20 @@ class AddressTable extends AbstractTable
 
     }
 
+    public function getLastDbUpdate() : ?DateTime
+    {
+        $tableName = static::TABLE_NAME;
+        $sql = "
+			SELECT timestamp_created
+			FROM $tableName
+			ORDER BY timestamp_created ASC
+			LIMIT 1;
+		";
+        $result = $this->dbAdapter->query($sql)->execute();
+        if(!$result->count()) return null;
+        return new DateTime($result->current()['timestamp_created']);
+    }
+
     public static function prepareFuzzySearchFields(string $search): array
     {
         if(!strlen($search)) return [];
