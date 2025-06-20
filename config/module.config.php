@@ -1,7 +1,5 @@
 <?php
 
-use Iaasen\Factory\ReflectionBasedAbstractFactory;
-
 return [
 	'laminas-cli' => [
 		'commands' => [
